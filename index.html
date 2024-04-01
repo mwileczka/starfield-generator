@@ -1,429 +1,551 @@
 <!DOCTYPE html>
 <html>
-<head>
-<script>
-	
-/*************************/
-// Hard-coded paramters
-var starfieldWidth = 1092;
-var starfieldHeight = 1092;
+  <head>
+    <script>
+      /*************************/
+      // Hard-coded paramters
+      var starfieldWidth = 1092;
+      var starfieldHeight = 1092;
 
-var initialSize1Count = 383;
-var initialSize2Count = 97;
-var initialSize3Count = 54;
-var initialSize4Count = 6;
-var initialEdgeFadeOut = 150;
-var initialBorder = 0;
+      var initialSize1Count = 383;
+      var initialSize2Count = 97;
+      var initialSize3Count = 54;
+      var initialSize4Count = 6;
+      var initialEdgeFadeOut = 150;
+      var initialBorder = 0;
 
-// Optional background image
-//var bgImage = "constellations.png";
-var bgImage = "";
-/*************************/
+      // Optional background image
+      //var bgImage = "constellations.png";
+      var bgImage = "";
+      /*************************/
+    </script>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252" />
+    <style>
+      body,
+      h3 {
+        margin: 0;
+        background: #000;
+        color: #bbb;
+      }
+      input {
+        background: #000;
+        color: #aaa;
+        border: 1px solid #555;
+      }
+      input[type="submit"] {
+        background: #555;
+        color: #aaa;
+        border: 1px solid #aaa;
+      }
+      input[disabled] {
+        background: #222;
+        color: #555;
+        border: 1px solid #555;
+      }
+      a {
+        color: #aaa;
+      }
+      canvas {
+        float: left;
+        margin-right: 20px;
+        border: solid #000;
+      }
+      #config {
+        padding-top: 5px;
+      }
+      #currentParams {
+        position: absolute;
+        padding: 10px;
+        margin: 10px;
+        background-color: #000;
+        border: 1px solid #fff;
+        color: #fff;
+        display: none;
+        font-family: "Courier New", Monospace;
+      }
+    </style>
+    <script src="perlin.js"></script>
+    <script src="processing.min.js"></script>
+    <script>
+      var processingInstance;
 
-</script>
-<meta http-equiv="content-type" content="text/html; charset=windows-1252">
-<style>
-body, h3 {
-	margin: 0;
-	background: #000;
-	color: #bbb;
-}
-input {
-	background: #000;
-	color: #aaa;
-	border: 1px solid #555;
-}
-input[type=submit] {
-	background: #555;
-	color: #aaa;
-	border: 1px solid #aaa;
-}
-input[disabled] {
-	background: #222;
-	color: #555;
-	border: 1px solid #555;
-}
-a {
-	color: #aaa;
-}
-canvas {
-	float: left;
-	margin-right: 20px;
-	border: solid #000;
-}
-#config {
-	padding-top: 5px;
-}
-#currentParams {
-	position: absolute;
-	padding: 10px;
-	margin: 10px;
-	background-color: #000;
-	border: 1px solid #fff;
-	color: #fff;
-	display: none;
-	font-family: 'Courier New', Monospace;
-}
-</style>
-<script src="perlin.js"></script>
-<script src="processing.min.js"></script>
-<script>
-var processingInstance;
+      var seedHistory = new Array();
+      var seedHistoryPtr = 0;
+      function newSeed() {
+        var seed = parseInt(Math.random() * 99999);
+        document.getElementById("seed").value = seed;
 
-var seedHistory = new Array();
-var seedHistoryPtr = 0;
-function newSeed() {
-	var seed = parseInt(Math.random() * 99999);
-	document.getElementById('seed').value = seed;
-	
-	seedHistoryPtr = seedHistory.length;
-	seedHistory[seedHistoryPtr] = seed;
-	
-	updateSeedHistButtons();
-	update();
-}
-function prevSeed() {
-	seedHistoryPtr--;
-	document.getElementById('seed').value = seedHistory[seedHistoryPtr];
-	
-	updateSeedHistButtons();
-	update();
-}
-function nextSeed() {
-	seedHistoryPtr++;
-	document.getElementById('seed').value = seedHistory[seedHistoryPtr];
-	
-	updateSeedHistButtons();
-	update();
-}
-function updateSeedHistButtons () {
-	document.getElementById('prevSeed').disabled = (seedHistoryPtr == 0);
-	document.getElementById('nextSeed').disabled = (seedHistoryPtr+1 == seedHistory.length);
-}
+        seedHistoryPtr = seedHistory.length;
+        seedHistory[seedHistoryPtr] = seed;
 
-var clusterMaskSeedHistory = new Array();
-var clusterMaskSeedHistoryPtr = 0;
-function newClusterMaskSeed() {
-	var clusterMaskSeed = parseInt(Math.random() * 99999);
-	document.getElementById('clusterMaskSeed').value = clusterMaskSeed;
-	
-	clusterMaskSeedHistoryPtr = clusterMaskSeedHistory.length;
-	clusterMaskSeedHistory[clusterMaskSeedHistoryPtr] = clusterMaskSeed;
-	
-	updateClusterMaskSeedHistButtons();
-	update();
-}
-function prevClusterMaskSeed() {
-	clusterMaskSeedHistoryPtr--;
-	document.getElementById('clusterMaskSeed').value = clusterMaskSeedHistory[clusterMaskSeedHistoryPtr];
-	
-	updateClusterMaskSeedHistButtons();
-	update();
-}
-function nextClusterMaskSeed() {
-	clusterMaskSeedHistoryPtr++;
-	document.getElementById('clusterMaskSeed').value = clusterMaskSeedHistory[clusterMaskSeedHistoryPtr];
-	
-	updateClusterMaskSeedHistButtons();
-	update();
-}
-function updateClusterMaskSeedHistButtons () {
-	document.getElementById('prevClusterMaskSeed').disabled = (clusterMaskSeedHistoryPtr == 0);
-	document.getElementById('nextClusterMaskSeed').disabled = (clusterMaskSeedHistoryPtr+1 == clusterMaskSeedHistory.length);
-}
+        updateSeedHistButtons();
+        update();
+      }
+      function prevSeed() {
+        seedHistoryPtr--;
+        document.getElementById("seed").value = seedHistory[seedHistoryPtr];
 
-function update() {
-	if (!processingInstance) {
-		processingInstance = Processing.getInstanceById('starfield');
-	}
-	processingInstance.redraw();
-}
-function generatePNG() {
-	if (!processingInstance) {
-		processingInstance = Processing.getInstanceById('starfield');
-	}
-	processingInstance.save("starfield.png");
-}
-window.saveParamsFlag = false;
-function saveParams() {
-	if (!processingInstance) {
-		processingInstance = Processing.getInstanceById('starfield');
-	}
-	window.saveParamsFlag = true;
-	processingInstance.redraw();
-	window.saveParamsFlag = false;
-}
+        updateSeedHistButtons();
+        update();
+      }
+      function nextSeed() {
+        seedHistoryPtr++;
+        document.getElementById("seed").value = seedHistory[seedHistoryPtr];
 
-if (bgImage != '') {
-	window.imgloader = window.setInterval(update, 100);
-}
-</script>
-<script type="application/processing" data-processing-target="starfield">
+        updateSeedHistButtons();
+        update();
+      }
+      function updateSeedHistButtons() {
+        document.getElementById("prevSeed").disabled = seedHistoryPtr == 0;
+        document.getElementById("nextSeed").disabled =
+          seedHistoryPtr + 1 == seedHistory.length;
+      }
 
-PImage imported_image;
+      var clusterMaskSeedHistory = new Array();
+      var clusterMaskSeedHistoryPtr = 0;
+      function newClusterMaskSeed() {
+        var clusterMaskSeed = parseInt(Math.random() * 99999);
+        document.getElementById("clusterMaskSeed").value = clusterMaskSeed;
 
-void setup() {
-	if (bgImage != '') {
-		imported_image = loadImage(bgImage);
-	}
-	
-	var width = window.starfieldWidth;
-	var height = window.starfieldHeight;
-	size(width, height);
-	noLoop()
-}
+        clusterMaskSeedHistoryPtr = clusterMaskSeedHistory.length;
+        clusterMaskSeedHistory[clusterMaskSeedHistoryPtr] = clusterMaskSeed;
 
-void draw() {
-	var fadeout = parseInt(document.getElementById('fadeout').value);
-	
-	var border = parseInt(document.getElementById('border').value);
-	document.getElementById('starfield').style.borderWidth = border+'px';
+        updateClusterMaskSeedHistButtons();
+        update();
+      }
+      function prevClusterMaskSeed() {
+        clusterMaskSeedHistoryPtr--;
+        document.getElementById("clusterMaskSeed").value =
+          clusterMaskSeedHistory[clusterMaskSeedHistoryPtr];
 
-	var seed = parseInt(document.getElementById('seed').value);
-	if (isNaN(seed) || seed == 0) {
-		newSeed();
-		seed = parseInt(document.getElementById('seed').value);
-	}
-	randomSeed(seed);
-	
-	if (bgImage != '' && imported_image != null && imported_image.loaded) {
-		window.clearTimeout(window.imgloader);
-		image(imported_image, 0,0, width,height);
-	} else {
-		background(0, 0, 0);
-	}
-	
-	var cc = document.getElementById('cc').checked;
-	var size1count = parseInt(document.getElementById('size1').value);
-	var size2count = parseInt(document.getElementById('size2').value);
-	var size3count = parseInt(document.getElementById('size3').value);
-	var size4count = parseInt(document.getElementById('size4').value);
-	var stars = [
-		{
-			size: 1,
-			count: size1count,
-			color: cc ? [255,0,0] : [255,255,255]
-		},
-		{
-			size: 2,
-			count: size2count,
-			color: cc ? [0,255,0] : [255,255,255]
-		},
-		{
-			size: 3,
-			count: size3count,
-			color: cc ? [0,0,255] : [255,255,255]
-		},
-		{
-			size: 4,
-			count: size4count,
-			color: cc ? [255,255,0] : [255,255,255]
-		}
-	];
-	var showsize = [
-		document.getElementById('showsize1').checked,
-		document.getElementById('showsize2').checked,
-		document.getElementById('showsize3').checked,
-		document.getElementById('showsize4').checked
-	];
-	
-	var clusterMaskSeed = parseInt(document.getElementById('clusterMaskSeed').value);
-	if (isNaN(clusterMaskSeed) || clusterMaskSeed == 0) {
-		newClusterMaskSeed();
-		clusterMaskSeed = parseInt(document.getElementById('clusterMaskSeed').value);
-	}
-	
-	// spaceAmount 0->100  clusterMaskThreshold 1.0->0.3
-	var spaceAmount = parseInt(document.getElementById('spaceAmount').value);
-	if (spaceAmount < 0) {
-		spaceAmount = 0;
-	}
-	if (spaceAmount > 100) {
-		spaceAmount = 100;
-	}
-	var clusterMaskThreshold = (100-spaceAmount)*0.006+0.4;
-	
-	var clusterAmount = parseInt(document.getElementById('clusterAmount').value);
-	if (clusterAmount < 0) {
-		clusterAmount = 0;
-	}
-	if (clusterAmount > 100) {
-		clusterAmount = 100;
-	}
-	
-	var clusterMaskScale = parseInt(document.getElementById('clusterMaskScale').value);
-	if (isNaN(clusterMaskScale) || clusterMaskScale < 1) {
-		clusterMaskScale = 1;
-	}
-	clusterMaskScale /= 100;
-	
-	for {var i = 0; i < stars.length; i++) {
-		strokeWeight(stars[i].size);
-		for (var c = 0; c < stars[i].count; c++) {
-			do {
-				do {
-					x = Math.floor(random(0, width));
-					y = Math.floor(random(0, height));
-					
-					var xn = x / width;
-					var yn = y / height;
-					n = PerlinNoise.noise( xn/clusterMaskScale, yn/clusterMaskScale, clusterMaskSeed );
-				} while (n > clusterMaskThreshold);
-				
-				var bTryAgain = false;
-				
-				// Fade out cluster edges?
-				if (clusterAmount > 0 && random(0, clusterAmount) > Math.abs(n-clusterMaskThreshold)*100) {
-					bTryAgain = true;
-				}
-					
-				
-				// Fade out borders?
-				if (fadeout > 0) {
-					var xEdgeDistance = x < width/2 ? x : width-x;
-					var yEdgeDistance = y < height/2 ? y : height-y;
-					var edgeDistance = xEdgeDistance < yEdgeDistance ? xEdgeDistance : yEdgeDistance;
-					if (edgeDistance < fadeout) {
-						var fadeChance = edgeDistance/fadeout;
-						if (random(0, fadeout) > edgeDistance) {
-							bTryAgain = true;
-						}
-					}
-				}
-			} while (bTryAgain);
-			
-			if (showsize[i]) {
-				stroke(stars[i].color[0], stars[i].color[1], stars[i].color[2]);
-				point(x, y);
-			}
-		}
-	}
-	
-	if (window.saveParamsFlag) {
-		var currentParams = '';
-		currentParams += 'Random seed: '+seed+"<br>";
-		currentParams += '0.50mm fibres: '+size1count+"<br>";
-		currentParams += '0.75mm fibres: '+size2count+"<br>";
-		currentParams += '1.00mm fibres: '+size3count+"<br>";
-		currentParams += '1.50mm fibres: '+size4count+"<br>";
-		currentParams += 'Colour code fibre sizes: '+(cc?'yes':'no')+"<br><br>";
-		currentParams += 'Sparser towards edges: '+fadeout+"<br>";
-		currentParams += 'Black border: '+border+"<br><br>";
-		currentParams += 'Space/cluster seed: '+clusterMaskSeed+"<br>";
-		currentParams += 'Space/cluster scale: '+clusterMaskScale*100+"<br>";
-		currentParams += 'Space amount: '+spaceAmount+"<br>";
-		currentParams += 'Cluster amount: '+clusterAmount+"<br>";
-		document.getElementById('currentParams').innerHTML = currentParams;
-		document.getElementById('currentParams').style.display = 'block';
-	} else {
-		document.getElementById('currentParams').style.display = 'none';
-	}
-}
-</script>
-</head>
-<body>
-<div id=currentParams></div>
-<canvas id="starfield"></canvas>
-<div id=config>
-<h3>Starfield generator by <a href="http://burnit.co.uk/" target="_blank">Seb Francis</a></h3>
-<br>
-<table>
-<tr>
-	<td>Random seed:</td>
-	<td><input type=text id=seed size=4 maxlength=5 onkeyup="update();"></td>
-	<td><input type=submit value="New seed" onclick="newSeed();">
-	<input type=submit value="&lt;" id=prevSeed onclick="prevSeed();" disabled><input type=submit value="&gt;" id=nextSeed onclick="nextSeed();" disabled></td>
-</tr>
-<tr>
-	<td>&nbsp;</td>
-</tr>
-<tr>
-	<td>0.50mm fibres:</td>
-	<script>
-	document.write('<td><input type=text id=size1 value="'+initialSize1Count+'" size=4 maxlength=4 onkeyup="update();"></td>');
-	</script>
-	<td><input type=checkbox id=showsize1 checked onclick="update();"></td>
-</tr>
-<tr>
-	<td>0.75mm fibres:</td>
-	<script>
-	document.write('<td><input type=text id=size2 value="'+initialSize2Count+'" size=4 maxlength=4 onkeyup="update();"></td>');
-	</script>
-	<td><input type=checkbox id=showsize2 checked onclick="update();"></td>
-</tr>
-<tr>
-	<td>1.00mm fibres:</td>
-	<script>
-	document.write('<td><input type=text id=size3 value="'+initialSize3Count+'" size=4 maxlength=4 onkeyup="update();"></td>');
-	</script>
-	<td><input type=checkbox id=showsize3 checked onclick="update();"></td>
-</tr>
-<tr>
-	<td>1.50mm fibres:</td>
-	<script>
-	document.write('<td><input type=text id=size4 value="'+initialSize4Count+'" size=4 maxlength=4 onkeyup="update();"></td>');
-	</script>
-	<td><input type=checkbox id=showsize4 checked onclick="update();"></td>
-</tr>
-<tr>
-	<td>Colour code fibre sizes:</td>
-	<td><input type=checkbox id=cc onclick="update();"></td>
-</tr>
-<tr>
-	<td>&nbsp;</td>
-</tr>
-<tr>
-	<td>Sparser towards edges:</td>
-	<script>
-	document.write('<td><input type=text id=fadeout value="'+initialEdgeFadeOut+'" size=4 maxlength=3 onkeyup="update();"></td>');
-	</script>
-	<td>(pixels)</td>
-</tr>
-<tr>
-	<td>Black border:</td>
-	<script>
-	document.write('<td><input type=text id=border value="'+initialBorder+'" size=4 maxlength=3 onkeyup="update();"></td>');
-	</script>
-	<td>(pixels)</td>
-</tr>
-<tr>
-	<td>&nbsp;</td>
-</tr>
-<tr>
-	<td>Space/cluster seed:</td>
-	<td><input type=text id=clusterMaskSeed size=4 maxlength=5 onkeyup="update();"></td>
-	<td><input type=submit value="New seed" onclick="newClusterMaskSeed();">
-	<input type=submit value="&lt;" id=prevClusterMaskSeed onclick="prevClusterMaskSeed();" disabled><input type=submit value="&gt;" id=nextClusterMaskSeed onclick="nextClusterMaskSeed();" disabled></td>
-</tr>
-<tr>
-	<td>Space/cluster scale:</td>
-	<td><input type=text id=clusterMaskScale value="15" size=4 maxlength=3 onkeyup="update();"></td>
-	<td>(>= 1)</td>
-</tr>
-<tr>
-	<td>Space amount:</td>
-	<td><input type=text id=spaceAmount value="60" size=4 maxlength=3 onkeyup="update();"></td>
-	<td>(0 to 100)</td>
-</tr>
-<tr>
-	<td>Cluster amount:</td>
-	<td><input type=text id=clusterAmount value="5" size=4 maxlength=3 onkeyup="update();"></td>
-	<td>0 to 100)</td>
-</tr>
-<tr>
-	<td>&nbsp;</td>
-</tr>
-</table>
-To get a better idea what the space/cluster parameters are doing, set a high number of fibres for a dense starfield.  Warning: high values of "Space amount" can be slow with a lot of stars.<br>
-<br>
-To save as an image: <input type=submit value="Generate PNG" onclick="generatePNG();"> (doesn't work in Internet Explorer)<br>
-<br>
-To copy parameters to clipboard: <input type=submit value="Show parameters as text" onclick="saveParams();"><br>
-<br>
-<form method=get>
-<input type=submit value="Reset parameters to default values">
-</form>
-</div>
+        updateClusterMaskSeedHistButtons();
+        update();
+      }
+      function nextClusterMaskSeed() {
+        clusterMaskSeedHistoryPtr++;
+        document.getElementById("clusterMaskSeed").value =
+          clusterMaskSeedHistory[clusterMaskSeedHistoryPtr];
 
-</body>
+        updateClusterMaskSeedHistButtons();
+        update();
+      }
+      function updateClusterMaskSeedHistButtons() {
+        document.getElementById("prevClusterMaskSeed").disabled =
+          clusterMaskSeedHistoryPtr == 0;
+        document.getElementById("nextClusterMaskSeed").disabled =
+          clusterMaskSeedHistoryPtr + 1 == clusterMaskSeedHistory.length;
+      }
+
+      function update() {
+        if (!processingInstance) {
+          processingInstance = Processing.getInstanceById("starfield");
+        }
+        processingInstance.redraw();
+      }
+      function generatePNG() {
+        if (!processingInstance) {
+          processingInstance = Processing.getInstanceById("starfield");
+        }
+        processingInstance.save("starfield.png");
+      }
+      window.saveParamsFlag = false;
+      function saveParams() {
+        if (!processingInstance) {
+          processingInstance = Processing.getInstanceById("starfield");
+        }
+        window.saveParamsFlag = true;
+        processingInstance.redraw();
+        window.saveParamsFlag = false;
+      }
+
+      if (bgImage != "") {
+        window.imgloader = window.setInterval(update, 100);
+      }
+    </script>
+    <script type="application/processing" data-processing-target="starfield">
+
+      PImage imported_image;
+
+      void setup() {
+      	if (bgImage != '') {
+      		imported_image = loadImage(bgImage);
+      	}
+
+      	var width = window.starfieldWidth;
+      	var height = window.starfieldHeight;
+      	size(width, height);
+      	noLoop()
+      }
+
+      void draw() {
+      	var fadeout = parseInt(document.getElementById('fadeout').value);
+
+      	var border = parseInt(document.getElementById('border').value);
+      	document.getElementById('starfield').style.borderWidth = border+'px';
+
+      	var seed = parseInt(document.getElementById('seed').value);
+      	if (isNaN(seed) || seed == 0) {
+      		newSeed();
+      		seed = parseInt(document.getElementById('seed').value);
+      	}
+      	randomSeed(seed);
+
+      	if (bgImage != '' && imported_image != null && imported_image.loaded) {
+      		window.clearTimeout(window.imgloader);
+      		image(imported_image, 0,0, width,height);
+      	} else {
+      		background(0, 0, 0);
+      	}
+
+      	var cc = document.getElementById('cc').checked;
+      	var size1count = parseInt(document.getElementById('size1').value);
+      	var size2count = parseInt(document.getElementById('size2').value);
+      	var size3count = parseInt(document.getElementById('size3').value);
+      	var size4count = parseInt(document.getElementById('size4').value);
+      	var stars = [
+      		{
+      			size: 1,
+      			count: size1count,
+      			color: cc ? [255,0,0] : [255,255,255]
+      		},
+      		{
+      			size: 2,
+      			count: size2count,
+      			color: cc ? [0,255,0] : [255,255,255]
+      		},
+      		{
+      			size: 3,
+      			count: size3count,
+      			color: cc ? [0,0,255] : [255,255,255]
+      		},
+      		{
+      			size: 4,
+      			count: size4count,
+      			color: cc ? [255,255,0] : [255,255,255]
+      		}
+      	];
+      	var showsize = [
+      		document.getElementById('showsize1').checked,
+      		document.getElementById('showsize2').checked,
+      		document.getElementById('showsize3').checked,
+      		document.getElementById('showsize4').checked
+      	];
+
+      	var clusterMaskSeed = parseInt(document.getElementById('clusterMaskSeed').value);
+      	if (isNaN(clusterMaskSeed) || clusterMaskSeed == 0) {
+      		newClusterMaskSeed();
+      		clusterMaskSeed = parseInt(document.getElementById('clusterMaskSeed').value);
+      	}
+
+      	// spaceAmount 0->100  clusterMaskThreshold 1.0->0.3
+      	var spaceAmount = parseInt(document.getElementById('spaceAmount').value);
+      	if (spaceAmount < 0) {
+      		spaceAmount = 0;
+      	}
+      	if (spaceAmount > 100) {
+      		spaceAmount = 100;
+      	}
+      	var clusterMaskThreshold = (100-spaceAmount)*0.006+0.4;
+
+      	var clusterAmount = parseInt(document.getElementById('clusterAmount').value);
+      	if (clusterAmount < 0) {
+      		clusterAmount = 0;
+      	}
+      	if (clusterAmount > 100) {
+      		clusterAmount = 100;
+      	}
+
+      	var clusterMaskScale = parseInt(document.getElementById('clusterMaskScale').value);
+      	if (isNaN(clusterMaskScale) || clusterMaskScale < 1) {
+      		clusterMaskScale = 1;
+      	}
+      	clusterMaskScale /= 100;
+
+      	for {var i = 0; i < stars.length; i++) {
+      		strokeWeight(stars[i].size);
+      		for (var c = 0; c < stars[i].count; c++) {
+      			do {
+      				do {
+      					x = Math.floor(random(0, width));
+      					y = Math.floor(random(0, height));
+
+      					var xn = x / width;
+      					var yn = y / height;
+      					n = PerlinNoise.noise( xn/clusterMaskScale, yn/clusterMaskScale, clusterMaskSeed );
+      				} while (n > clusterMaskThreshold);
+
+      				var bTryAgain = false;
+
+      				// Fade out cluster edges?
+      				if (clusterAmount > 0 && random(0, clusterAmount) > Math.abs(n-clusterMaskThreshold)*100) {
+      					bTryAgain = true;
+      				}
+
+
+      				// Fade out borders?
+      				if (fadeout > 0) {
+      					var xEdgeDistance = x < width/2 ? x : width-x;
+      					var yEdgeDistance = y < height/2 ? y : height-y;
+      					var edgeDistance = xEdgeDistance < yEdgeDistance ? xEdgeDistance : yEdgeDistance;
+      					if (edgeDistance < fadeout) {
+      						var fadeChance = edgeDistance/fadeout;
+      						if (random(0, fadeout) > edgeDistance) {
+      							bTryAgain = true;
+      						}
+      					}
+      				}
+      			} while (bTryAgain);
+
+      			if (showsize[i]) {
+      				stroke(stars[i].color[0], stars[i].color[1], stars[i].color[2]);
+      				point(x, y);
+      			}
+      		}
+      	}
+
+      	if (window.saveParamsFlag) {
+      		var currentParams = '';
+      		currentParams += 'Random seed: '+seed+"<br>";
+      		currentParams += '0.50mm fibres: '+size1count+"<br>";
+      		currentParams += '0.75mm fibres: '+size2count+"<br>";
+      		currentParams += '1.00mm fibres: '+size3count+"<br>";
+      		currentParams += '1.50mm fibres: '+size4count+"<br>";
+      		currentParams += 'Colour code fibre sizes: '+(cc?'yes':'no')+"<br><br>";
+      		currentParams += 'Sparser towards edges: '+fadeout+"<br>";
+      		currentParams += 'Black border: '+border+"<br><br>";
+      		currentParams += 'Space/cluster seed: '+clusterMaskSeed+"<br>";
+      		currentParams += 'Space/cluster scale: '+clusterMaskScale*100+"<br>";
+      		currentParams += 'Space amount: '+spaceAmount+"<br>";
+      		currentParams += 'Cluster amount: '+clusterAmount+"<br>";
+      		document.getElementById('currentParams').innerHTML = currentParams;
+      		document.getElementById('currentParams').style.display = 'block';
+      	} else {
+      		document.getElementById('currentParams').style.display = 'none';
+      	}
+      }
+    </script>
+  </head>
+  <body>
+    <div id="currentParams"></div>
+    <canvas id="starfield"></canvas>
+    <div id="config">
+      <h3>
+        Starfield generator by
+        <a href="http://burnit.co.uk/" target="_blank">Seb Francis</a>
+      </h3>
+      <br />
+      <table>
+        <tr>
+          <td>Random seed:</td>
+          <td>
+            <input
+              type="text"
+              id="seed"
+              size="4"
+              maxlength="5"
+              onkeyup="update();"
+            />
+          </td>
+          <td>
+            <input type="submit" value="New seed" onclick="newSeed();" />
+            <input
+              type="submit"
+              value="&lt;"
+              id="prevSeed"
+              onclick="prevSeed();"
+              disabled
+            /><input
+              type="submit"
+              value="&gt;"
+              id="nextSeed"
+              onclick="nextSeed();"
+              disabled
+            />
+          </td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td>0.50mm fibres:</td>
+          <script>
+            document.write(
+              '<td><input type=text id=size1 value="' +
+                initialSize1Count +
+                '" size=4 maxlength=4 onkeyup="update();"></td>'
+            );
+          </script>
+          <td>
+            <input type="checkbox" id="showsize1" checked onclick="update();" />
+          </td>
+        </tr>
+        <tr>
+          <td>0.75mm fibres:</td>
+          <script>
+            document.write(
+              '<td><input type=text id=size2 value="' +
+                initialSize2Count +
+                '" size=4 maxlength=4 onkeyup="update();"></td>'
+            );
+          </script>
+          <td>
+            <input type="checkbox" id="showsize2" checked onclick="update();" />
+          </td>
+        </tr>
+        <tr>
+          <td>1.00mm fibres:</td>
+          <script>
+            document.write(
+              '<td><input type=text id=size3 value="' +
+                initialSize3Count +
+                '" size=4 maxlength=4 onkeyup="update();"></td>'
+            );
+          </script>
+          <td>
+            <input type="checkbox" id="showsize3" checked onclick="update();" />
+          </td>
+        </tr>
+        <tr>
+          <td>1.50mm fibres:</td>
+          <script>
+            document.write(
+              '<td><input type=text id=size4 value="' +
+                initialSize4Count +
+                '" size=4 maxlength=4 onkeyup="update();"></td>'
+            );
+          </script>
+          <td>
+            <input type="checkbox" id="showsize4" checked onclick="update();" />
+          </td>
+        </tr>
+        <tr>
+          <td>Colour code fibre sizes:</td>
+          <td><input type="checkbox" id="cc" onclick="update();" /></td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td>Sparser towards edges:</td>
+          <script>
+            document.write(
+              '<td><input type=text id=fadeout value="' +
+                initialEdgeFadeOut +
+                '" size=4 maxlength=3 onkeyup="update();"></td>'
+            );
+          </script>
+          <td>(pixels)</td>
+        </tr>
+        <tr>
+          <td>Black border:</td>
+          <script>
+            document.write(
+              '<td><input type=text id=border value="' +
+                initialBorder +
+                '" size=4 maxlength=3 onkeyup="update();"></td>'
+            );
+          </script>
+          <td>(pixels)</td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td>Space/cluster seed:</td>
+          <td>
+            <input
+              type="text"
+              id="clusterMaskSeed"
+              size="4"
+              maxlength="5"
+              onkeyup="update();"
+            />
+          </td>
+          <td>
+            <input
+              type="submit"
+              value="New seed"
+              onclick="newClusterMaskSeed();"
+            />
+            <input
+              type="submit"
+              value="&lt;"
+              id="prevClusterMaskSeed"
+              onclick="prevClusterMaskSeed();"
+              disabled
+            /><input
+              type="submit"
+              value="&gt;"
+              id="nextClusterMaskSeed"
+              onclick="nextClusterMaskSeed();"
+              disabled
+            />
+          </td>
+        </tr>
+        <tr>
+          <td>Space/cluster scale:</td>
+          <td>
+            <input
+              type="text"
+              id="clusterMaskScale"
+              value="15"
+              size="4"
+              maxlength="3"
+              onkeyup="update();"
+            />
+          </td>
+          <td>(>= 1)</td>
+        </tr>
+        <tr>
+          <td>Space amount:</td>
+          <td>
+            <input
+              type="text"
+              id="spaceAmount"
+              value="60"
+              size="4"
+              maxlength="3"
+              onkeyup="update();"
+            />
+          </td>
+          <td>(0 to 100)</td>
+        </tr>
+        <tr>
+          <td>Cluster amount:</td>
+          <td>
+            <input
+              type="text"
+              id="clusterAmount"
+              value="5"
+              size="4"
+              maxlength="3"
+              onkeyup="update();"
+            />
+          </td>
+          <td>0 to 100)</td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+      </table>
+      To get a better idea what the space/cluster parameters are doing, set a
+      high number of fibres for a dense starfield. Warning: high values of
+      "Space amount" can be slow with a lot of stars.<br />
+      <br />
+      To save as an image:
+      <input type="submit" value="Generate PNG" onclick="generatePNG();" />
+      (doesn't work in Internet Explorer)<br />
+      <br />
+      To copy parameters to clipboard:
+      <input
+        type="submit"
+        value="Show parameters as text"
+        onclick="saveParams();"
+      /><br />
+      <br />
+      <form method="get">
+        <input type="submit" value="Reset parameters to default values" />
+      </form>
+    </div>
+  </body>
 </html>

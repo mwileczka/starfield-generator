@@ -1,4 +1,4 @@
-# Fiber Starfield Generator
+# Fiber Optic Starfield Generator
 
 Tool for generating fiber optic starfield patterns.
 
